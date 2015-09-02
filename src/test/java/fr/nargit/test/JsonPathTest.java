@@ -87,7 +87,7 @@ public class JsonPathTest {
 
 	private void validateFields(List<String> fields) {
 		if (fields.contains("birthDate")) {
-			throw new IllegalArgumentException("You cannot update this field");
+			throw new IllegalArgumentException("You cannot read this field");
 		}
 	}
 
