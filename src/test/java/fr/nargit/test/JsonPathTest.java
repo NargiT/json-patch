@@ -1,16 +1,20 @@
 package fr.nargit.test;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.flipkart.zjsonpatch.JsonPatch;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.util.Calendar;
-import java.util.Date;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.flipkart.zjsonpatch.JsonPatch;
 
 /**
  * (c) Swissquote 01-sept.-2015
@@ -22,7 +26,7 @@ public class JsonPathTest {
 	private Date birthdate = new Date(1987, Calendar.JULY, 3);
 
 	@Test
-	public void pathTest() throws IOException {
+	public void partialUpdate() throws IOException {
 		JsonNode patches = convertToJson(clientUpdates());
 
 		validatePatches(patches);
@@ -44,8 +48,45 @@ public class JsonPathTest {
 
 	}
 
+	@Test
+	public void partialRead() throws IOException {
+		List<String> requestedFields = clientRequest();
+
+		validateFields(requestedFields);
+
+		PersonEntity oldPerson = getPersonFromDatabase();
+		final JsonNode person = convertToJson(oldPerson);
+
+		JsonNode partialPerson = new ObjectMapper().valueToTree(new PersonEntity());
+		// get only usefull fields
+		for (String field : requestedFields) {
+			((ObjectNode) partialPerson).put(field, person.get(field).textValue());
+		}
+/* java 8 style
+		requestedFields.forEach((field) -> {
+			((ObjectNode) partialPerson).put(field, person.get(field).textValue());
+		});
+*/
+		PersonEntity newPerson = convertToEntity(partialPerson);
+
+		Assert.assertThat(newPerson.firstname, CoreMatchers.is("tigran"));
+		Assert.assertThat(newPerson.lastname, CoreMatchers.is("durden"));
+		Assert.assertThat(newPerson.young, CoreMatchers.nullValue());
+		Assert.assertThat(newPerson.iam, CoreMatchers.nullValue());
+		Assert.assertThat(newPerson.birthDate, CoreMatchers.nullValue());
+
+		doBusinessStuff(oldPerson, newPerson);
+
+	}
+
 	private void validatePatches(JsonNode patches) {
-		if(patches.has("birthDate")) {
+		if (patches.has("birthDate")) {
+			throw new IllegalArgumentException("You cannot update this field");
+		}
+	}
+
+	private void validateFields(List<String> fields) {
+		if (fields.contains("birthDate")) {
 			throw new IllegalArgumentException("You cannot update this field");
 		}
 	}
@@ -96,6 +137,14 @@ public class JsonPathTest {
 				"{ \"op\": \"replace\", \"path\": \"young\", \"value\": false }, " +
 				"{ \"op\": \"replace\", \"path\": \"iam\", \"value\": null } " +
 				"]";
+	}
+
+	private List<String> clientRequest() {
+		// patches to apply object
+		return new ArrayList<String>() {{
+			add("firstname");
+			add("lastname");
+		}};
 	}
 
 	static class PersonEntity {
