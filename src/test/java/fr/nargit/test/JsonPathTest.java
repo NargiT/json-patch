@@ -17,7 +17,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.flipkart.zjsonpatch.JsonPatch;
 
 /**
- * (c) Swissquote 01-sept.-2015
+ * (c) 01-sept.-2015
  *
  * @author ttchougourian
  */
